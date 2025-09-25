@@ -1,7 +1,9 @@
+import "./globals.css";
 export const metadata = {
     title: "Labeler MVP",
     description: "Next.js + Konva + OpenCV.js"
   };
+
   
   export default function RootLayout({ children }: { children: React.ReactNode }) {
     return (
