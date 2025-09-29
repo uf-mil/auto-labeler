@@ -43,7 +43,7 @@ export default function ImagesPage() {
 
   const handleAdd = async () => {
     if (!newFile) return;
-
+    console.log("hello!");
     const res = await fetch("/api/images", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
