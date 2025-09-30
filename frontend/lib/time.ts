@@ -1,8 +1,6 @@
 export function TimePassed(date: Date) {
     const current_date = new Date();
-    console.log(date.toLocaleDateString())
     const time_passed = current_date.getTime() - date.getTime();
-    console.log(time_passed)
     const seconds = Math.floor(time_passed / 1000);
     if (seconds >= 0 && seconds < 60) {
         return `${seconds} second${seconds > 1 ? 's' : ''} ago`;
@@ -14,7 +12,7 @@ export function TimePassed(date: Date) {
         return `${hours} hour${hours > 1 ? 's' : ''} ago`;
     } else if (seconds >= 86400 && seconds < 604800) {
         const days = Math.floor(seconds / 86400);
-        return `${days} day${days > 1 ? 's' : undefined} ago`;
+        return `${days} day${days > 1 ? 's' : ''} ago`;
     } else if (seconds >= 604800 && seconds < 2419200) {
         const weeks = Math.floor(seconds / 604800);
         return `${weeks} week${weeks > 1 ? 's' : ''} ago`;

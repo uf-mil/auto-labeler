@@ -6,7 +6,7 @@ import { TimePassed } from "@/lib/time";
 import { useEffect, useState, useRef } from "react";
 
 // generates different colors from the provided index
-function indexToColor(index, total) {
+function indexToColor(index: number, total: number) {
   const hue = (index * 360) / total;
   return `hsl(${hue}, 70%, 50%,0.2)`; 
 }
@@ -41,13 +41,8 @@ function ProjectCard({
     const dateRef = useRef<HTMLDivElement>(null);
     const timePassed = TimePassed(lastLabeledAt)
     useEffect(() => {
-        const onHover = (e: MouseEvent) => {
-            setHover(true);
-        };
-        const onLeave = (e) => {
-            setHover(false);
-            if (dateRef.current) dateRef.current.removeEventListener('mouseover',onHover);
-        }
+        const onHover = (e: MouseEvent) => setHover(true);
+        const onLeave = (e: MouseEvent) => setHover(false);
         if (dateRef.current) {
             dateRef.current.addEventListener('mousemove', onHover);
             dateRef.current.addEventListener('mouseleave', onLeave)
