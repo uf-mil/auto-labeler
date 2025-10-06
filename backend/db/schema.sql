@@ -91,6 +91,7 @@ CREATE TABLE IF NOT EXISTS images (
     uri TEXT NOT NULL,
     width INT,
     height INT,
+    image_data BYTEA,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 
     last_annotated_at TIMESTAMPTZ,

@@ -1,18 +1,19 @@
+import os
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi import UploadFile, File, Form
 from pydantic import BaseModel
 import psycopg
 
 conn = psycopg.connect(
-    host="localhost",
-    port=5433,
-    dbname="labeler",
-    user="labeler",
-    password="labeler",
+    host=os.getenv("DB_HOST", "db"),
+    port=os.getenv("DB_PORT", "5432"),
+    dbname=os.getenv("DB_NAME", "labeler"),
+    user=os.getenv("DB_USER", "labeler"),
+    password=os.getenv("DB_PASSWORD", "labeler"),
     autocommit=True
 )
 
-#instance
 app = FastAPI(title = "AutoLabeler API", version = "0.0.1")
 
 # Allow contact with api through browser
@@ -24,7 +25,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Run func when 
 @app.get("/api/health")
 def health():
     return {"ok": True, "service": "api", "version": "0.0.1"}
@@ -42,15 +42,19 @@ class ImageUpdate(BaseModel):
 
 # Create image
 @app.post("/api/images")
-def create_image(img: ImageCreate):
+async def create_image(
+    project_id: int = Form(...),
+    file: UploadFile = File(...)
+):
+    content = await file.read()
     with conn.cursor() as cur:
         cur.execute(
             """
-            INSERT INTO images (project_id, uri, width, height)
-            VALUES (%s, %s, %s, %s)
+            INSERT INTO images (project_id, uri, width, height, image_data)
+            VALUES (%s, %s, %s, %s, %s)
             RETURNING id, project_id, uri, width, height, created_at, last_annotated_at, last_annotated_by_user;
             """,
-            (img.project_id, img.uri, img.width, img.height)
+            (project_id, file.filename, None, None, psycopg.Binary(content))
         )
         row = cur.fetchone()
     return dict(
@@ -157,3 +161,15 @@ def delete_image(image_id: int):
     if not row:
         raise HTTPException(status_code=404, detail="Image not found")
     return {"message": f"Image {row[0]} deleted"}
+
+from fastapi.responses import StreamingResponse
+import io
+
+@app.get("/api/images/{image_id}/data")
+def get_image_data(image_id: int):
+    with conn.cursor() as cur:
+        cur.execute("SELECT image_data, uri FROM images WHERE id = %s", (image_id,))
+        row = cur.fetchone()
+    if not row or row[0] is None:
+        raise HTTPException(status_code=404, detail="Image data not found")
+    return StreamingResponse(io.BytesIO(row[0]), media_type="image/jpeg")

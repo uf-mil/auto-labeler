@@ -22,16 +22,12 @@ export default function ImagesPage() {
   useEffect(() => {
     const fetchImages = async () => {
       try {
-        const res = await fetch("/api/images");
+        const res = await fetch("http://localhost:8000/api/images");
         if (!res.ok) throw new Error("Failed to fetch images");
         const data = await res.json();
-        setImages(data);
+        setImages(data.map((img: any) => ({ id: img.id, filename: img.uri })));
       } catch (err) {
         console.error(err);
-        setImages([
-          { id: 1, filename: "placeholderImg1.jpg" },
-          { id: 2, filename: "placeholderImg2.jpg" },
-        ]);
       }
     };
     fetchImages();
@@ -40,21 +36,42 @@ export default function ImagesPage() {
   const handleSelect = (id: number) => {
     router.push("/labeling/");
   };
+  
 
   const handleAdd = async () => {
     if (!newFile) return;
-    console.log("hello!");
-    const res = await fetch("/api/images", {
+  
+    const formData = new FormData();
+    formData.append("project_id", "1");
+    formData.append("file", newFile);
+  
+    const res = await fetch("http://localhost:8000/api/images", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ filename: newFile.name }),
+      body: formData,
     });
-
+  
+    if (!res.ok) {
+      console.error("Upload failed");
+      return;
+    }
+  
     const added = await res.json();
-    setImages((prev) => [...prev, added]);
-    setNewFile(null);
+    setImages((prev) => [...prev, { id: added.id, filename: added.uri }]);
   };
 
+  const handleDelete = async (id: number) => {
+    const res = await fetch(`http://localhost:8000/api/images/${id}`, {
+      method: "DELETE",
+    });
+  
+    if (!res.ok) {
+      console.error("Delete failed");
+      return;
+    }
+  
+    setImages((prev) => prev.filter((img) => img.id !== id));
+  };
+  
   return (
     <div>
       <h1>Select an Image</h1>
@@ -65,10 +82,21 @@ export default function ImagesPage() {
             key={img.id}
           >
             <span>{img.filename}</span>
+            <img
+              src={`http://localhost:8000/api/images/${img.id}/data`}
+              alt={img.filename}
+              width={100}
+            />
+
             <button
               onClick={() => handleSelect(img.id)}
             >
               Label
+            </button>
+            <button
+              onClick={() => handleDelete(img.id)}
+            >
+              Delete
             </button>
           </li>
         ))}
@@ -78,6 +106,7 @@ export default function ImagesPage() {
         <h2 className="text-lg font-semibold">Add a New Image</h2>
         <input
           type="file"
+          accept="image/png, image/jpeg"
           onChange={(e) => setNewFile(e.target.files?.[0] || null)}
         />
         <button
