@@ -60,7 +60,7 @@ function ProjectCard({
     const Card = (<div className="hover:-translate-y-1 hover:cursor-pointer hover:shadow-2xl duration-250 shadow-xl rounded-lg px-6 py-2 min-h-fit min-w-[247px] w-100 h-50 flex-col relative" style={{backgroundColor: indexToColor(index, total)}} onClick={onClick}>
         <div className="flex flex-row items-center justify-start">
             <h2 className="text-2xl line-clamp-1">{name}</h2>
-            <div className="relative inline-block group ml-auto -translate-y-3 translate-x-1.5">
+            <div className="relative inline-block group ml-auto -translate-y-3 translate-x-1.5 z-50">
                 <span className=" text-4xl hover:underline">…</span>
                 <div className="absolute z-50 right-0 top-full mt-2 w-32 bg-white text-black text-sm rounded-lg shadow-md p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none group-hover:pointer-events-auto">settings</div>
             </div>
