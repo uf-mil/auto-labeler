@@ -22,7 +22,7 @@ function ProjectCard({
     href,
     layout, // For deciding dynamic layout later.
     index,
-    total
+    total,
  }:  
     {
     name: string,
@@ -60,10 +60,14 @@ function ProjectCard({
     const Card = (<div className="hover:-translate-y-1 hover:cursor-pointer hover:shadow-2xl duration-250 shadow-xl rounded-lg px-6 py-2 min-h-fit min-w-[247px] w-100 h-50 flex-col relative" style={{backgroundColor: indexToColor(index, total)}} onClick={onClick}>
         <div className="flex flex-row items-center justify-start">
             <h2 className="text-2xl line-clamp-1">{name}</h2>
-            <span className="ml-auto -translate-y-3 translate-x-1.5 text-4xl  ">…</span>
+            <div className="relative inline-block group ml-auto -translate-y-3 translate-x-1.5">
+                <span className=" text-4xl hover:underline">…</span>
+                <div className="absolute z-50 right-0 top-full mt-2 w-32 bg-white text-black text-sm rounded-lg shadow-md p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none group-hover:pointer-events-auto">settings</div>
+            </div>
+            
 
         </div>
-        <div className="w-full h-[1px] opacity-25 my-0.5 bg-black"></div>
+        <div className="w-full h-[1px] opacity-25 my-0.5 bg-black z-0"></div>
         { description && <p className="line-clamp-4 text-sm">{description}</p> }
         
         <div ref={dateRef} className="bg-gray-500 bg-w-full px-6 rounded-b-lg w-full h-[30%] absolute bottom-0 left-0 flex flex-row items-center">
