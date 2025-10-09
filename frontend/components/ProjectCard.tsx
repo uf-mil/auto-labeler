@@ -22,7 +22,7 @@ function ProjectCard({
     href,
     layout, // For deciding dynamic layout later.
     index,
-    total
+    total,
  }:  
     {
     name: string,
@@ -82,7 +82,7 @@ function ProjectCard({
             
 
         </div>
-        <div className="w-full h-[1px] opacity-25 my-0.5 bg-black"></div>
+        <div className="w-full h-[1px] opacity-25 my-0.5 bg-black z-0"></div>
         { description && <p className="line-clamp-4 text-sm">{description}</p> }
         
         <div ref={dateRef} className="bg-gray-500 bg-w-full px-6 rounded-b-lg w-full h-[30%] absolute bottom-0 left-0 flex flex-row items-center">
