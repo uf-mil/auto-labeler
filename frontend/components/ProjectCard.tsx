@@ -35,7 +35,7 @@ function ProjectCard({
     layout?: string,
     index: number,
     total: number,
-     } ) 
+    } ) 
 {   
     const [hover, setHover] = useState<boolean>(false);
     const dateRef = useRef<HTMLDivElement>(null);
@@ -55,16 +55,13 @@ function ProjectCard({
                 dateRef.current.removeEventListener('mouseleave', onLeave)
             }
         }
-    });
+    }, []);
    
-    const Card = (<div className="hover:-translate-y-1 hover:cursor-pointer hover:shadow-2xl duration-250 shadow-xl rounded-lg px-6 py-2 min-h-fit min-w-[247px] w-100 h-50 flex-col relative" style={{backgroundColor: indexToColor(index, total)}} onClick={onClick}>
+    const Card = (
+    <div className="hover:-translate-y-1 hover:cursor-pointer hover:shadow-2xl duration-300 shadow-xl rounded-lg px-6 py-2 min-h-fit min-w-[247px] w-100 h-50 flex-col relative" style={{backgroundColor: indexToColor(index, total)}} onClick={onClick}>
         <div className="flex flex-row items-center justify-start">
             <h2 className="text-2xl line-clamp-1">{name}</h2>
-            <div className="relative inline-block group ml-auto -translate-y-3 translate-x-1.5 z-50">
-                <span className=" text-4xl hover:underline">…</span>
-                <div className="absolute z-50 right-0 top-full mt-2 w-32 bg-white text-black text-sm rounded-lg shadow-md p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none group-hover:pointer-events-auto">settings</div>
-            </div>
-            
+            <span className="ml-auto -translate-y-3 translate-x-1.5 text-4xl">…</span>
 
         </div>
         <div className="w-full h-[1px] opacity-25 my-0.5 bg-black z-0"></div>
@@ -76,7 +73,7 @@ function ProjectCard({
                 <p className="text-white">{lastLabeledAt.toLocaleDateString()}</p>
                 <p className="text-white ml-auto" 
                     style={{color: `hsl(${labeledCount * 120 / totalImages}, 100%, 50%)`}} >
-                        {labeledCount * 100 / totalImages}% completed
+                        {labeledCount * 100 / totalImages}%
                     </p>
 
                 </>
