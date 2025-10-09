@@ -35,7 +35,7 @@ function ProjectCard({
     layout?: string,
     index: number,
     total: number,
-     } ) 
+    } ) 
 {   
     const [hover, setHover] = useState<boolean>(false);
     const [cardColor, setCardColor] = useState<string>(indexToColor(index, total));
@@ -56,7 +56,7 @@ function ProjectCard({
                 dateRef.current.removeEventListener('mouseleave', onLeave)
             }
         }
-    });
+    }, []);
    
     const Card = (
         <div className="hover:-translate-y-1 hover:cursor-pointer hover:shadow-2xl duration-250 shadow-xl rounded-lg px-6 py-2 min-h-fit min-w-[247px] w-100 h-50 flex-col relative" style={{backgroundColor: cardColor}} onClick={onClick}>
@@ -91,7 +91,7 @@ function ProjectCard({
                 <p className="text-white">{lastLabeledAt.toLocaleDateString()}</p>
                 <p className="text-white ml-auto" 
                     style={{color: `hsl(${labeledCount * 120 / totalImages}, 100%, 50%)`}} >
-                        {labeledCount * 100 / totalImages}% completed
+                        {labeledCount * 100 / totalImages}%
                     </p>
 
                 </>

@@ -12,6 +12,7 @@ export default function Page() {
     const [api, setApi] = useState<Health | null>(null);
     const [apiErr, setApiErr] = useState<string | null>(null);
     const [cvReady, setCvReady] = useState(false);
+    const [testImageUrl, setTestImageUrl] = useState<string>("");
   
     useEffect(() => {
       ping().then(setApi).catch((e) => setApiErr(String(e)));
@@ -21,7 +22,7 @@ export default function Page() {
   
     // When OpenCV script loads, cv becomes available on window
     const onCvReady = () => {
-      // @ts-ignore
+      
       const ok = typeof window.cv !== "undefined";
       setCvReady(ok);
     };
@@ -35,12 +36,33 @@ export default function Page() {
         />
         <StatusBar api={api} apiErr={apiErr} cvReady={cvReady} />
         <div style={{ padding: 12 }}>
-          <p>
-            Next.js app is running. Konva canvas below confirms rendering.
-            OpenCV.js loaded client-side. Backend health checked via fetch.
+          <h2 className="text-xl font-bold mb-2">AutoLabeler - Draw around objects to automatically create annotations</h2>
+          <p className="mb-4">
+            {cvReady ? "Edge detection is ready!" : "Loading OpenCV"}
           </p>
+
+          {/* Image URL Input */}
+          <div className="bg-gray-100 p-4 rounded-lg mb-4 flex gap-2 items-center">
+            <label className="font-semibold">Test Image URL:</label>
+            <input
+              type="text"
+              value={testImageUrl}
+              onChange={(e) => setTestImageUrl(e.target.value)}
+              placeholder="https://example.com/image.jpg or leave blank to test drawing"
+              className="flex-1 px-3 py-2 rounded border"
+            />
+            <button
+              onClick={() => setTestImageUrl("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/481px-Cat03.jpg")}
+              className="px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            >
+              Load Sample
+            </button>
+          </div>
         </div>
-        <CanvasStage />
+        <CanvasStage
+          cvReady={cvReady}
+          imageUrl={testImageUrl || undefined}
+        />
       </>
     );
 }
