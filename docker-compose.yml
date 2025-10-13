@@ -6,7 +6,7 @@ services:
       POSTGRES_PASSWORD: labeler
       POSTGRES_DB: labeler
     ports:
-      - "5433:5433"
+      - "5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U labeler -d labeler"]
       interval: 5s
@@ -24,6 +24,11 @@ services:
       - appdata:/app/storage    # optional persistent data
     environment:
       DATABASE_URL: postgresql+psycopg://labeler:labeler@db:5432/labeler
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_NAME: labeler
+      DB_USER: labeler
+      DB_PASSWORD: labeler
     command: bash -lc "pip install -r requirements.txt && uvicorn app:app --host 0.0.0.0 --port 8000"
     ports:
       - "8000:8000"
