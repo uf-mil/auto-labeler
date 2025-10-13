@@ -7,7 +7,7 @@ import { processImageRegion } from "@/lib/opencv";
 
 // Types
 type Point = { x: number; y: number };
-type ToolMode = "draw" | "pan" | "select";
+type ToolMode = "draw" | "pan" | "select" | "rectangle";
 type ShapeMode = "polygon" | "bbox";
 
 type Annotation = {
@@ -73,6 +73,18 @@ export default function CanvasStage({
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentPath, setCurrentPath] = useState<Point[]>([]);
 
+  // Rectangle state
+  const [activeRect, setActiveRect] = useState<{
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  } | null>(null);
+  const [isDraggingRect, setIsDraggingRect] = useState(false);
+  const [isResizingRect, setIsResizingRect] = useState(false);
+  const [resizeHandle, setResizeHandle] = useState<string | null>(null);
+  const [rectStartPoint, setRectStartPoint] = useState<Point | null>(null);
+
   // Annotations state
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [annotationHistory, setAnnotationHistory] = useState<Annotation[][]>([]);
@@ -116,6 +128,16 @@ export default function CanvasStage({
         e.preventDefault();
         setToolMode('select');
       }
+      // Rectangle mode: R key
+      else if (e.key === 'r' || e.key === 'R') {
+        e.preventDefault();
+        setToolMode('rectangle');
+      }
+      // Escape: Clear active rectangle or drawing
+      else if (e.key === 'Escape') {
+        e.preventDefault();
+        handleClearDrawing();
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -131,25 +153,144 @@ export default function CanvasStage({
 
   // Mouse handlers for drawing
   const handleMouseDown = (e: any) => {
-    if (toolMode !== "draw") return;
-
     const stage = e.target.getStage();
     const point = stage.getPointerPosition();
+
+    if (toolMode === "rectangle") {
+      // Check if clicking on resize handle
+      if (activeRect) {
+        const handle = getClickedHandle(point, activeRect);
+        if (handle) {
+          setIsResizingRect(true);
+          setResizeHandle(handle.id);
+          return;
+        }
+        
+        // Check if clicking inside rectangle (for dragging)
+        if (isPointInRect(point, activeRect)) {
+          setIsDraggingRect(true);
+          return;
+        }
+      }
+      
+      // Start new rectangle
+      setActiveRect({ x: point.x, y: point.y, width: 0, height: 0 });
+      setRectStartPoint(point);
+      setIsDraggingRect(true);
+      return;
+    }
+
+    if (toolMode !== "draw") return;
 
     setIsDrawing(true);
     setCurrentPath([{ x: point.x, y: point.y }]);
   };
 
   const handleMouseMove = (e: any) => {
-    if (!isDrawing || toolMode !== "draw") return;
-
     const stage = e.target.getStage();
     const point = stage.getPointerPosition();
+
+    if (toolMode === "rectangle") {
+      if (isResizingRect && activeRect && resizeHandle) {
+        // Handle resizing
+        const newRect = { ...activeRect };
+        
+        switch (resizeHandle) {
+          case 'nw':
+            newRect.width += newRect.x - point.x;
+            newRect.height += newRect.y - point.y;
+            newRect.x = point.x;
+            newRect.y = point.y;
+            break;
+          case 'ne':
+            newRect.width = point.x - newRect.x;
+            newRect.height += newRect.y - point.y;
+            newRect.y = point.y;
+            break;
+          case 'sw':
+            newRect.width += newRect.x - point.x;
+            newRect.height = point.y - newRect.y;
+            newRect.x = point.x;
+            break;
+          case 'se':
+            newRect.width = point.x - newRect.x;
+            newRect.height = point.y - newRect.y;
+            break;
+          case 'n':
+            newRect.height += newRect.y - point.y;
+            newRect.y = point.y;
+            break;
+          case 's':
+            newRect.height = point.y - newRect.y;
+            break;
+          case 'w':
+            newRect.width += newRect.x - point.x;
+            newRect.x = point.x;
+            break;
+          case 'e':
+            newRect.width = point.x - newRect.x;
+            break;
+        }
+        
+        // Ensure minimum size
+        if (newRect.width < 10) newRect.width = 10;
+        if (newRect.height < 10) newRect.height = 10;
+        
+        setActiveRect(newRect);
+        return;
+      }
+      
+      if (isDraggingRect && activeRect && rectStartPoint && !isResizingRect) {
+        // Creating new rectangle
+        const newRect = {
+          x: Math.min(rectStartPoint.x, point.x),
+          y: Math.min(rectStartPoint.y, point.y),
+          width: Math.abs(point.x - rectStartPoint.x),
+          height: Math.abs(point.y - rectStartPoint.y)
+        };
+        setActiveRect(newRect);
+        return;
+      }
+    }
+
+    if (!isDrawing || toolMode !== "draw") return;
 
     setCurrentPath([...currentPath, { x: point.x, y: point.y }]);
   };
 
   const handleMouseUp = async (e: any) => {
+    if (toolMode === "rectangle") {
+      if (isResizingRect) {
+        setIsResizingRect(false);
+        setResizeHandle(null);
+        return;
+      }
+      
+      if (isDraggingRect) {
+        setIsDraggingRect(false);
+        setRectStartPoint(null);
+        
+        // Only create annotation if rectangle has meaningful size
+        if (activeRect && activeRect.width > 10 && activeRect.height > 10) {
+          // Convert rectangle to annotation format [x, y, width, height]
+          const rectPoints = [activeRect.x, activeRect.y, activeRect.width, activeRect.height];
+          
+          const newAnnotation: Annotation = {
+            id: `annotation-${Date.now()}`,
+            type: "bbox",
+            points: rectPoints,
+            color: getAnnotationColor(),
+          };
+
+          const newAnnotations = [...annotations, newAnnotation];
+          setAnnotationHistory([...annotationHistory, annotations]);
+          setAnnotations(newAnnotations);
+          setActiveRect(null); // Clear active rectangle after creating annotation
+        }
+        return;
+      }
+    }
+
     if (!isDrawing || toolMode !== "draw") return;
 
     setIsDrawing(false);
@@ -227,6 +368,11 @@ export default function CanvasStage({
   const handleClearDrawing = () => {
     setCurrentPath([]);
     setIsDrawing(false);
+    setActiveRect(null);
+    setIsDraggingRect(false);
+    setIsResizingRect(false);
+    setResizeHandle(null);
+    setRectStartPoint(null);
   };
 
   // Delete selected annotation
@@ -273,6 +419,40 @@ export default function CanvasStage({
     return "#4ECDC4"; // Consistent teal color for all annotations
   };
 
+  // Rectangle utility functions
+  const getResizeHandles = (rect: { x: number; y: number; width: number; height: number }) => [
+    { id: 'nw', x: rect.x, y: rect.y, cursor: 'nw-resize' },
+    { id: 'ne', x: rect.x + rect.width, y: rect.y, cursor: 'ne-resize' },
+    { id: 'sw', x: rect.x, y: rect.y + rect.height, cursor: 'sw-resize' },
+    { id: 'se', x: rect.x + rect.width, y: rect.y + rect.height, cursor: 'se-resize' },
+    { id: 'n', x: rect.x + rect.width/2, y: rect.y, cursor: 'n-resize' },
+    { id: 's', x: rect.x + rect.width/2, y: rect.y + rect.height, cursor: 's-resize' },
+    { id: 'w', x: rect.x, y: rect.y + rect.height/2, cursor: 'w-resize' },
+    { id: 'e', x: rect.x + rect.width, y: rect.y + rect.height/2, cursor: 'e-resize' }
+  ];
+
+  const getClickedHandle = (point: Point, rect: { x: number; y: number; width: number; height: number }) => {
+    const handles = getResizeHandles(rect);
+    const threshold = 8;
+    
+    return handles.find(handle => 
+      Math.abs(point.x - handle.x) <= threshold && 
+      Math.abs(point.y - handle.y) <= threshold
+    );
+  };
+
+  const isPointInRect = (point: Point, rect: { x: number; y: number; width: number; height: number }) => {
+    return point.x >= rect.x && point.x <= rect.x + rect.width &&
+           point.y >= rect.y && point.y <= rect.y + rect.height;
+  };
+
+  // Auto-switch to rectangle mode when bbox shape is selected
+  useEffect(() => {
+    if (shapeMode === "bbox" && toolMode === "draw") {
+      setToolMode("rectangle");
+    }
+  }, [shapeMode, toolMode]);
+
   if (!mounted) return null;
 
   return (
@@ -287,6 +467,12 @@ export default function CanvasStage({
             onClick={() => setToolMode("draw")}
           >
           Draw
+          </button>
+          <button
+            className={`px-3 py-1 rounded ${toolMode === "rectangle" ? "bg-blue-500 text-white" : "bg-white"}`}
+            onClick={() => setToolMode("rectangle")}
+          >
+            Rectangle
           </button>
           <button
             className={`px-3 py-1 rounded ${toolMode === "select" ? "bg-blue-500 text-white" : "bg-white"}`}
@@ -368,7 +554,7 @@ export default function CanvasStage({
           <button
             className="px-3 py-1 rounded bg-yellow-500 text-white hover:bg-yellow-600"
             onClick={handleClearDrawing}
-            disabled={!isDrawing && currentPath.length === 0}
+            disabled={!isDrawing && currentPath.length === 0 && !activeRect}
           >
             Clear Drawing
           </button>
@@ -427,27 +613,88 @@ export default function CanvasStage({
           )}
 
           {/* Saved Annotations */}
-          {annotations.map((annotation) => (
-            <Line
-              key={annotation.id}
-              points={annotation.points}
-              stroke={annotation.color}
-              strokeWidth={3}
-              closed={true}
-              fill={annotation.color + "40"} // Add transparency
-              onClick={() => {
-                if (toolMode === "select") {
-                  setSelectedAnnotationId(annotation.id);
-                }
-              }}
-              onDblClick={() => {
-                // Double-click to enter select mode and select this annotation
-                setToolMode("select");
-                setSelectedAnnotationId(annotation.id);
-              }}
-              opacity={selectedAnnotationId === annotation.id ? 0.8 : 0.5}
-            />
-          ))}
+          {annotations.map((annotation) => {
+            if (annotation.type === "bbox") {
+              // Render bounding box as rectangle
+              const [x, y, width, height] = annotation.points;
+              return (
+                <Rect
+                  key={annotation.id}
+                  x={x}
+                  y={y}
+                  width={width}
+                  height={height}
+                  stroke={annotation.color}
+                  strokeWidth={3}
+                  fill={annotation.color + "40"} // Add transparency
+                  onClick={() => {
+                    if (toolMode === "select") {
+                      setSelectedAnnotationId(annotation.id);
+                    }
+                  }}
+                  onDblClick={() => {
+                    // Double-click to enter select mode and select this annotation
+                    setToolMode("select");
+                    setSelectedAnnotationId(annotation.id);
+                  }}
+                  opacity={selectedAnnotationId === annotation.id ? 0.8 : 0.5}
+                />
+              );
+            } else {
+              // Render polygon as line
+              return (
+                <Line
+                  key={annotation.id}
+                  points={annotation.points}
+                  stroke={annotation.color}
+                  strokeWidth={3}
+                  closed={true}
+                  fill={annotation.color + "40"} // Add transparency
+                  onClick={() => {
+                    if (toolMode === "select") {
+                      setSelectedAnnotationId(annotation.id);
+                    }
+                  }}
+                  onDblClick={() => {
+                    // Double-click to enter select mode and select this annotation
+                    setToolMode("select");
+                    setSelectedAnnotationId(annotation.id);
+                  }}
+                  opacity={selectedAnnotationId === annotation.id ? 0.8 : 0.5}
+                />
+              );
+            }
+          })}
+
+          {/* Active Rectangle */}
+          {toolMode === "rectangle" && activeRect && (
+            <>
+              {/* Main rectangle */}
+              <Rect
+                x={activeRect.x}
+                y={activeRect.y}
+                width={activeRect.width}
+                height={activeRect.height}
+                stroke="#0066FF"
+                strokeWidth={2}
+                fill="rgba(0, 102, 255, 0.1)"
+              />
+              
+              {/* Resize handles */}
+              {getResizeHandles(activeRect).map(handle => (
+                <Rect
+                  key={handle.id}
+                  x={handle.x - 4}
+                  y={handle.y - 4}
+                  width={8}
+                  height={8}
+                  fill="#0066FF"
+                  stroke="#ffffff"
+                  strokeWidth={1}
+                />
+              ))}
+            </>
+          )}
 
           {/* Current Drawing Path */}
           {isDrawing && currentPath.length > 0 && (
