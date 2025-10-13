@@ -1,8 +1,9 @@
 import os
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi import UploadFile, File, Form
+from fastapi import UploadFile, File, Form, Query
 from pydantic import BaseModel
+from typing import Optional
 import psycopg
 
 conn = psycopg.connect(
@@ -70,11 +71,26 @@ async def create_image(
 
 #List images
 @app.get("/api/images")
-def list_images():
+def list_images(project_id: Optional[int] = Query(None)):
     with conn.cursor() as cur:
-        cur.execute(
-            "SELECT id, project_id, uri, width, height, created_at, last_annotated_at, last_annotated_by_user FROM images ORDER BY id"
-        )
+        if project_id is not None:
+            cur.execute(
+                """
+                SELECT id, project_id, uri, width, height, created_at, last_annotated_at, last_annotated_by_user
+                FROM images
+                WHERE project_id = %s
+                ORDER BY id
+                """,
+                (project_id,)
+            )
+        else:
+            cur.execute(
+                """
+                SELECT id, project_id, uri, width, height, created_at, last_annotated_at, last_annotated_by_user
+                FROM images
+                ORDER BY id
+                """
+            )
         rows = cur.fetchall()
     return [
         dict(
