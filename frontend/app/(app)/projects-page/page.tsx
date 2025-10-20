@@ -2,11 +2,9 @@
 "use client";
 import { useEffect, useState } from "react";
 import ProjectCard from "@/components/ProjectCard";
-
 export default function ProjectsPage() {
   
   type Project = {
-    id: number
     name: string;
     description?: string;
     labeledCount: number;
@@ -43,19 +41,19 @@ export default function ProjectsPage() {
 
   return (
     <>
-      <h1 className="text-2xl font-bold mb-4">Projects</h1>
+      <h1>Projects</h1>
       <div className="flex justify-center">
         <div className="flex flex-wrap justify-center gap-5 w-full">
-          {projects.map((project, index) => (
+          {projects.map((project, key) => (
             <ProjectCard
-              key={project.id}
+              key={key}
               name={project.name}
               description={project.description}
               labeledCount={project.labeledCount}
               totalImages={project.totalImages}
               lastLabeledAt={project.lastLabeledAt}
               total={projects.length}
-              index={index}
+              index={key}
             />
           ))}
         </div>
