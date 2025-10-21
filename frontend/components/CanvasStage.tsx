@@ -466,7 +466,7 @@ export default function CanvasStage({
             className={`px-3 py-1 rounded ${toolMode === "draw" ? "bg-blue-500 text-white" : "bg-white"}`}
             onClick={() => setToolMode("draw")}
           >
-          Draw
+            Draw
           </button>
           <button
             className={`px-3 py-1 rounded ${toolMode === "rectangle" ? "bg-blue-500 text-white" : "bg-white"}`}
@@ -566,129 +566,118 @@ export default function CanvasStage({
           {!imageUrl && <span className="text-orange-600 ml-2">⚠ No image loaded</span>}
         </p>
         <p className="text-xs text-gray-600 mt-1">
-          <strong>Hotkeys:</strong> D=Draw | S=Select | Ctrl+Z=Undo | Del/Backspace=Delete
+          <strong>Hotkeys:</strong> D=Draw (Freehand) | R=Rectangle | S=Select | Ctrl+Z=Undo | Del/Backspace=Delete
         </p>
       </div>
 
       {/* Canvas */}
-      <Stage
-        ref={stageRef}
-        width={canvasSize.width}
-        height={canvasSize.height}
-        style={{ border: "2px solid #333", borderRadius: "8px", backgroundColor: "#f9f9f9" }}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-      >
-        <Layer>
-          {/* Background Image */}
-          {imageUrl && (
-            <DrawingImage
-              src={imageUrl}
-              onImageLoad={setLoadedImage}
-              x={imageOffset.x}
-              y={imageOffset.y}
-              scaleX={zoom}
-              scaleY={zoom}
-            />
-          )}
+      <div className="w-screen flex justify-center">
+        <Stage
+          ref={stageRef}
+          width={canvasSize.width}
+          height={canvasSize.height}
+          style={{ width: canvasSize.width, height: canvasSize.height, overflow: "hidden", border: "2px solid #333", borderRadius: "8px", backgroundColor: "#f9f9f9", margin: "20px" }}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+        >
+          <Layer>
+            {/* Background Image */}
+            {imageUrl && (
+              <DrawingImage
+                src={imageUrl}
+                onImageLoad={setLoadedImage}
+                x={imageOffset.x}
+                y={imageOffset.y}
+                scaleX={zoom}
+                scaleY={zoom}
+              />
+            )}
 
-          {/* Saved Annotations */}
-          {annotations.map((annotation) => {
-            if (annotation.type === "bbox") {
-              // Render bounding box as rectangle
-              const [x, y, width, height] = annotation.points;
-              return (
+            {/* Saved Annotations */}
+            {annotations.map((annotation) => {
+              if (annotation.type === "bbox") {
+                // Render bounding box as rectangle
+                const [x, y, width, height] = annotation.points;
+                return (
+                  <Rect
+                    key={annotation.id}
+                    x={x}
+                    y={y}
+                    width={width}
+                    height={height}
+                    stroke={annotation.color}
+                    strokeWidth={3}
+                    fill={annotation.color + "40"} // Add transparency
+                    onClick={() => {
+                      if (toolMode === "select") {
+                        setSelectedAnnotationId(annotation.id);
+                      }
+                    }}
+                    onDblClick={() => {
+                      // Double-click to enter select mode and select this annotation
+                      setToolMode("select");
+                      setSelectedAnnotationId(annotation.id);
+                    }}
+                    opacity={selectedAnnotationId === annotation.id ? 0.8 : 0.5}
+                  />
+                );
+              } else {
+                // Render polygon as line
+                return (
+                  <Line
+                    key={annotation.id}
+                    points={annotation.points}
+                    stroke={annotation.color}
+                    strokeWidth={3}
+                    closed={true}
+                    fill={annotation.color + "40"} // Add transparency
+                    onClick={() => {
+                      if (toolMode === "select") {
+                        setSelectedAnnotationId(annotation.id);
+                      }
+                    }}
+                    onDblClick={() => {
+                      // Double-click to enter select mode and select this annotation
+                      setToolMode("select");
+                      setSelectedAnnotationId(annotation.id);
+                    }}
+                    opacity={selectedAnnotationId === annotation.id ? 0.8 : 0.5}
+                  />
+                );
+              }
+            })}
+
+            {/* Active Rectangle */}
+            {toolMode === "rectangle" && activeRect && (
+              <>
+                {/* Main rectangle */}
                 <Rect
-                  key={annotation.id}
-                  x={x}
-                  y={y}
-                  width={width}
-                  height={height}
-                  stroke={annotation.color}
-                  strokeWidth={3}
-                  fill={annotation.color + "40"} // Add transparency
-                  onClick={() => {
-                    if (toolMode === "select") {
-                      setSelectedAnnotationId(annotation.id);
-                    }
-                  }}
-                  onDblClick={() => {
-                    // Double-click to enter select mode and select this annotation
-                    setToolMode("select");
-                    setSelectedAnnotationId(annotation.id);
-                  }}
-                  opacity={selectedAnnotationId === annotation.id ? 0.8 : 0.5}
+                  x={activeRect.x}
+                  y={activeRect.y}
+                  width={activeRect.width}
+                  height={activeRect.height}
+                  stroke="#0066FF"
+                  strokeWidth={2}
+                  fill="rgba(0, 102, 255, 0.1)"
                 />
-              );
-            } else {
-              // Render polygon as line
-              return (
-                <Line
-                  key={annotation.id}
-                  points={annotation.points}
-                  stroke={annotation.color}
-                  strokeWidth={3}
-                  closed={true}
-                  fill={annotation.color + "40"} // Add transparency
-                  onClick={() => {
-                    if (toolMode === "select") {
-                      setSelectedAnnotationId(annotation.id);
-                    }
-                  }}
-                  onDblClick={() => {
-                    // Double-click to enter select mode and select this annotation
-                    setToolMode("select");
-                    setSelectedAnnotationId(annotation.id);
-                  }}
-                  opacity={selectedAnnotationId === annotation.id ? 0.8 : 0.5}
-                />
-              );
-            }
-          })}
+              </>
+            )}
 
-          {/* Active Rectangle */}
-          {toolMode === "rectangle" && activeRect && (
-            <>
-              {/* Main rectangle */}
-              <Rect
-                x={activeRect.x}
-                y={activeRect.y}
-                width={activeRect.width}
-                height={activeRect.height}
+            {/* Current Drawing Path */}
+            {isDrawing && currentPath.length > 0 && (
+              <Line
+                points={currentPath.flatMap(p => [p.x, p.y])}
                 stroke="#0066FF"
                 strokeWidth={2}
-                fill="rgba(0, 102, 255, 0.1)"
+                lineCap="round"
+                lineJoin="round"
               />
-              
-              {/* Resize handles */}
-              {getResizeHandles(activeRect).map(handle => (
-                <Rect
-                  key={handle.id}
-                  x={handle.x - 4}
-                  y={handle.y - 4}
-                  width={8}
-                  height={8}
-                  fill="#0066FF"
-                  stroke="#ffffff"
-                  strokeWidth={1}
-                />
-              ))}
-            </>
-          )}
-
-          {/* Current Drawing Path */}
-          {isDrawing && currentPath.length > 0 && (
-            <Line
-              points={currentPath.flatMap(p => [p.x, p.y])}
-              stroke="#0066FF"
-              strokeWidth={2}
-              lineCap="round"
-              lineJoin="round"
-            />
-          )}
-        </Layer>
-      </Stage>
+            )}
+          </Layer>
+        </Stage>
+      </div>
+      
     </div>
   );
 }
