@@ -482,25 +482,6 @@ export default function CanvasStage({
           </button>
         </div>
 
-        {/* Shape Mode (when OpenCV is ready) */}
-        {cvReady && (
-          <div className="flex gap-2 items-center">
-            <label className="font-semibold">Shape:</label>
-            <button
-              className={`px-3 py-1 rounded ${shapeMode === "polygon" ? "bg-green-500 text-white" : "bg-white"}`}
-              onClick={() => setShapeMode("polygon")}
-            >
-              Polygon
-            </button>
-            <button
-              className={`px-3 py-1 rounded ${shapeMode === "bbox" ? "bg-green-500 text-white" : "bg-white"}`}
-              onClick={() => setShapeMode("bbox")}
-            >
-              BBox
-            </button>
-          </div>
-        )}
-
         {/* Polygon sides slider (when in polygon mode) */}
         {cvReady && shapeMode === "polygon" && (
           <div className="flex gap-2 items-center">
