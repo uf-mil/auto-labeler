@@ -153,6 +153,9 @@ export default function CanvasStage({
 
   // Mouse handlers for drawing
   const handleMouseDown = (e: any) => {
+    // Disable interaction if no image is loaded
+    if (!imageUrl || !loadedImage) return;
+
     const stage = e.target.getStage();
     const point = stage.getPointerPosition();
 
@@ -187,6 +190,9 @@ export default function CanvasStage({
   };
 
   const handleMouseMove = (e: any) => {
+    // Disable interaction if no image is loaded
+    if (!imageUrl || !loadedImage) return;
+
     const stage = e.target.getStage();
     const point = stage.getPointerPosition();
 
@@ -259,6 +265,9 @@ export default function CanvasStage({
   };
 
   const handleMouseUp = async (e: any) => {
+    // Disable interaction if no image is loaded
+    if (!imageUrl || !loadedImage) return;
+
     if (toolMode === "rectangle") {
       if (isResizingRect) {
         setIsResizingRect(false);
@@ -463,20 +472,47 @@ export default function CanvasStage({
         <div className="flex gap-2">
           <label className="font-semibold">Tool:</label>
           <button
-            className={`px-3 py-1 rounded ${toolMode === "draw" ? "bg-blue-500 text-white" : "bg-white"}`}
-            onClick={() => setToolMode("draw")}
+            className={`px-3 py-1 rounded ${
+              !imageUrl || !loadedImage 
+                ? "bg-gray-300 text-gray-500 cursor-not-allowed" 
+                : toolMode === "draw" 
+                  ? "bg-blue-500 text-white" 
+                  : "bg-white"
+            }`}
+            onClick={() => {
+              if (imageUrl && loadedImage) setToolMode("draw");
+            }}
+            disabled={!imageUrl || !loadedImage}
           >
             Draw
           </button>
           <button
-            className={`px-3 py-1 rounded ${toolMode === "rectangle" ? "bg-blue-500 text-white" : "bg-white"}`}
-            onClick={() => setToolMode("rectangle")}
+            className={`px-3 py-1 rounded ${
+              !imageUrl || !loadedImage 
+                ? "bg-gray-300 text-gray-500 cursor-not-allowed" 
+                : toolMode === "rectangle" 
+                  ? "bg-blue-500 text-white" 
+                  : "bg-white"
+            }`}
+            onClick={() => {
+              if (imageUrl && loadedImage) setToolMode("rectangle");
+            }}
+            disabled={!imageUrl || !loadedImage}
           >
             Rectangle
           </button>
           <button
-            className={`px-3 py-1 rounded ${toolMode === "select" ? "bg-blue-500 text-white" : "bg-white"}`}
-            onClick={() => setToolMode("select")}
+            className={`px-3 py-1 rounded ${
+              !imageUrl || !loadedImage 
+                ? "bg-gray-300 text-gray-500 cursor-not-allowed" 
+                : toolMode === "select" 
+                  ? "bg-blue-500 text-white" 
+                  : "bg-white"
+            }`}
+            onClick={() => {
+              if (imageUrl && loadedImage) setToolMode("select");
+            }}
+            disabled={!imageUrl || !loadedImage}
           >
             Select
           </button>
@@ -493,6 +529,7 @@ export default function CanvasStage({
               value={polygonSides}
               onChange={(e) => setPolygonSides(parseInt(e.target.value))}
               className="w-24"
+              disabled={!imageUrl || !loadedImage}
             />
             <span className="w-8 text-center">{polygonSides}</span>
           </div>
@@ -527,7 +564,7 @@ export default function CanvasStage({
           <button
             className="px-3 py-1 rounded bg-purple-500 text-white hover:bg-purple-600"
             onClick={handleUndo}
-            disabled={annotationHistory.length === 0}
+            disabled={annotationHistory.length === 0 || !imageUrl || !loadedImage}
             title="Undo (Ctrl+Z)"
           >
             Undo
@@ -535,14 +572,14 @@ export default function CanvasStage({
           <button
             className="px-3 py-1 rounded bg-yellow-500 text-white hover:bg-yellow-600"
             onClick={handleClearDrawing}
-            disabled={!isDrawing && currentPath.length === 0 && !activeRect}
+            disabled={(!isDrawing && currentPath.length === 0 && !activeRect) || !imageUrl || !loadedImage}
           >
             Clear Drawing
           </button>
           <button
             className="px-3 py-1 rounded bg-red-500 text-white hover:bg-red-600"
             onClick={handleDeleteSelected}
-            disabled={!selectedAnnotationId}
+            disabled={!selectedAnnotationId || !imageUrl || !loadedImage}
             title="Delete (Del/Backspace)"
           >
             Delete Selected
@@ -550,7 +587,7 @@ export default function CanvasStage({
           <button
             className="px-3 py-1 rounded bg-red-700 text-white hover:bg-red-800"
             onClick={handleClearAll}
-            disabled={annotations.length === 0}
+            disabled={annotations.length === 0 || !imageUrl || !loadedImage}
           >
             Clear All
           </button>
@@ -572,112 +609,149 @@ export default function CanvasStage({
 
       {/* Canvas */}
       <div className="w-screen flex justify-center">
-        <Stage
-          ref={stageRef}
-          width={canvasSize.width}
-          height={canvasSize.height}
-          style={{ width: canvasSize.width, height: canvasSize.height, overflow: "hidden", border: "2px solid #333", borderRadius: "8px", backgroundColor: "#f9f9f9", margin: "20px" }}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-        >
-          <Layer>
-            {/* Background Image */}
-            {imageUrl && (
-              <DrawingImage
-                src={imageUrl}
-                onImageLoad={setLoadedImage}
-                x={imageOffset.x}
-                y={imageOffset.y}
-                scaleX={zoom}
-                scaleY={zoom}
-              />
-            )}
+        <div className="relative">
+          <Stage
+            ref={stageRef}
+            width={canvasSize.width}
+            height={canvasSize.height}
+            style={{ width: canvasSize.width, height: canvasSize.height, overflow: "hidden", border: "2px solid #333", borderRadius: "8px", backgroundColor: "#f9f9f9", margin: "20px" }}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+          >
+            <Layer>
+              {/* Background Image */}
+              {imageUrl && (
+                <DrawingImage
+                  src={imageUrl}
+                  onImageLoad={setLoadedImage}
+                  x={imageOffset.x}
+                  y={imageOffset.y}
+                  scaleX={zoom}
+                  scaleY={zoom}
+                />
+              )}
 
-            {/* Saved Annotations */}
-            {annotations.map((annotation) => {
-              if (annotation.type === "bbox") {
-                // Render bounding box as rectangle
-                const [x, y, width, height] = annotation.points;
-                return (
+              {/* Saved Annotations */}
+              {annotations.map((annotation) => {
+                if (annotation.type === "bbox") {
+                  // Render bounding box as rectangle
+                  const [x, y, width, height] = annotation.points;
+                  return (
+                    <Rect
+                      key={annotation.id}
+                      x={x}
+                      y={y}
+                      width={width}
+                      height={height}
+                      stroke={annotation.color}
+                      strokeWidth={3}
+                      fill={annotation.color + "40"} // Add transparency
+                      onClick={() => {
+                        if (toolMode === "select") {
+                          setSelectedAnnotationId(annotation.id);
+                        }
+                      }}
+                      onDblClick={() => {
+                        // Double-click to enter select mode and select this annotation
+                        setToolMode("select");
+                        setSelectedAnnotationId(annotation.id);
+                      }}
+                      opacity={selectedAnnotationId === annotation.id ? 0.8 : 0.5}
+                    />
+                  );
+                } else {
+                  // Render polygon as line
+                  return (
+                    <Line
+                      key={annotation.id}
+                      points={annotation.points}
+                      stroke={annotation.color}
+                      strokeWidth={3}
+                      closed={true}
+                      fill={annotation.color + "40"} // Add transparency
+                      onClick={() => {
+                        if (toolMode === "select") {
+                          setSelectedAnnotationId(annotation.id);
+                        }
+                      }}
+                      onDblClick={() => {
+                        // Double-click to enter select mode and select this annotation
+                        setToolMode("select");
+                        setSelectedAnnotationId(annotation.id);
+                      }}
+                      opacity={selectedAnnotationId === annotation.id ? 0.8 : 0.5}
+                    />
+                  );
+                }
+              })}
+
+              {/* Active Rectangle */}
+              {toolMode === "rectangle" && activeRect && (
+                <>
+                  {/* Main rectangle */}
                   <Rect
-                    key={annotation.id}
-                    x={x}
-                    y={y}
-                    width={width}
-                    height={height}
-                    stroke={annotation.color}
-                    strokeWidth={3}
-                    fill={annotation.color + "40"} // Add transparency
-                    onClick={() => {
-                      if (toolMode === "select") {
-                        setSelectedAnnotationId(annotation.id);
-                      }
-                    }}
-                    onDblClick={() => {
-                      // Double-click to enter select mode and select this annotation
-                      setToolMode("select");
-                      setSelectedAnnotationId(annotation.id);
-                    }}
-                    opacity={selectedAnnotationId === annotation.id ? 0.8 : 0.5}
+                    x={activeRect.x}
+                    y={activeRect.y}
+                    width={activeRect.width}
+                    height={activeRect.height}
+                    stroke="#0066FF"
+                    strokeWidth={2}
+                    fill="rgba(0, 102, 255, 0.1)"
                   />
-                );
-              } else {
-                // Render polygon as line
-                return (
-                  <Line
-                    key={annotation.id}
-                    points={annotation.points}
-                    stroke={annotation.color}
-                    strokeWidth={3}
-                    closed={true}
-                    fill={annotation.color + "40"} // Add transparency
-                    onClick={() => {
-                      if (toolMode === "select") {
-                        setSelectedAnnotationId(annotation.id);
-                      }
-                    }}
-                    onDblClick={() => {
-                      // Double-click to enter select mode and select this annotation
-                      setToolMode("select");
-                      setSelectedAnnotationId(annotation.id);
-                    }}
-                    opacity={selectedAnnotationId === annotation.id ? 0.8 : 0.5}
-                  />
-                );
-              }
-            })}
+                  
+                  {/* Resize handles */}
+                  {getResizeHandles(activeRect).map(handle => (
+                    <Rect
+                      key={handle.id}
+                      x={handle.x - 4}
+                      y={handle.y - 4}
+                      width={8}
+                      height={8}
+                      fill="#0066FF"
+                      stroke="#ffffff"
+                      strokeWidth={1}
+                    />
+                  ))}
+                </>
+              )}
 
-            {/* Active Rectangle */}
-            {toolMode === "rectangle" && activeRect && (
-              <>
-                {/* Main rectangle */}
-                <Rect
-                  x={activeRect.x}
-                  y={activeRect.y}
-                  width={activeRect.width}
-                  height={activeRect.height}
+              {/* Current Drawing Path */}
+              {isDrawing && currentPath.length > 0 && (
+                <Line
+                  points={currentPath.flatMap(p => [p.x, p.y])}
                   stroke="#0066FF"
                   strokeWidth={2}
-                  fill="rgba(0, 102, 255, 0.1)"
+                  lineCap="round"
+                  lineJoin="round"
                 />
-              </>
-            )}
-
-            {/* Current Drawing Path */}
-            {isDrawing && currentPath.length > 0 && (
-              <Line
-                points={currentPath.flatMap(p => [p.x, p.y])}
-                stroke="#0066FF"
-                strokeWidth={2}
-                lineCap="round"
-                lineJoin="round"
-              />
-            )}
-          </Layer>
-        </Stage>
+              )}
+            </Layer>
+          </Stage>
+          
+          {/* No Image Loaded Overlay */}
+          {(!imageUrl || !loadedImage) && (
+            <div 
+              className="absolute inset-0 flex items-center justify-center bg-gray-100 bg-opacity-90 rounded-lg m-5"
+              style={{ 
+                top: "20px", 
+                left: "20px", 
+                right: "20px", 
+                bottom: "20px",
+                borderRadius: "8px"
+              }}
+            >
+              <div className="text-center p-8">
+                <div className="text-6xl mb-4 text-gray-400">📷</div>
+                <h3 className="text-xl font-semibold text-gray-600 mb-2">No Image Loaded</h3>
+                <p className="text-gray-500">
+                  Please load an image above to start labeling
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
-      
     </div>
   );
 }
