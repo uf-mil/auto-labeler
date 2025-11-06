@@ -1,7 +1,7 @@
 // frontend/components/CanvasStage.tsx
 "use client";
 import { useEffect, useState, useRef } from "react";
-import { Stage, Layer, Line, Image as KonvaImage, Rect } from "react-konva";
+import { Stage, Layer, Line, Image as KonvaImage, Group} from "react-konva";
 import useImage from "use-image";
 import { processImageRegion } from "@/lib/opencv";
 
@@ -13,7 +13,7 @@ type ShapeMode = "polygon" | "bbox";
 type Annotation = {
   id: string;
   type: "polygon" | "bbox";
-  points: number[]; // For polygon: [x1,y1,x2,y2,...], for bbox: [x,y,width,height]
+  points: number[]; // For polygon: [x1,y1,x2,y2,..etc], for bbox: [x,y,width,height]
   label?: string;
   color: string;
 };
@@ -40,12 +40,10 @@ function DrawingImage({
   scaleX?: number;
   scaleY?: number;
 }) {
-  const [image] = useImage(src);
+  const [image] = useImage(src, 'anonymous');
 
   useEffect(() => {
-    if (image && onImageLoad) {
-      onImageLoad(image);
-    }
+    if (image && onImageLoad) onImageLoad(image as HTMLImageElement);
   }, [image, onImageLoad]);
 
   return <KonvaImage image={image} x={x} y={y} scaleX={scaleX} scaleY={scaleY} />;
@@ -55,7 +53,8 @@ export default function CanvasStage({
   imageUrl,
   cvReady = false,
   onAnnotationsChange
-}: CanvasStageProps) {
+}: CanvasStageProps)
+{
   // Don't render Stage until mounted (avoids SSR/rehydration edge cases)
   const [mounted, setMounted] = useState(false);
 
@@ -97,22 +96,26 @@ export default function CanvasStage({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Undo: Ctrl+Z or Cmd+Z
-      if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z')
+      {
         e.preventDefault();
         handleUndo();
       }
       // Delete: Delete or Backspace
-      else if (e.key === 'Delete' || e.key === 'Backspace') {
+      else if (e.key === 'Delete' || e.key === 'Backspace')
+      {
         e.preventDefault();
         handleDeleteSelected();
       }
       // Draw mode: D key
-      else if (e.key === 'd' || e.key === 'D') {
+      else if (e.key === 'd' || e.key === 'D')
+      {
         e.preventDefault();
         setToolMode('draw');
       }
       // Select mode: S key
-      else if (e.key === 's' || e.key === 'S') {
+      else if (e.key === 's' || e.key === 'S')
+      {
         e.preventDefault();
         setToolMode('select');
       }
@@ -132,22 +135,22 @@ export default function CanvasStage({
   // Mouse handlers for drawing
   const handleMouseDown = (e: any) => {
     if (toolMode !== "draw") return;
-
     const stage = e.target.getStage();
-    const point = stage.getPointerPosition();
-
+    const p = stage.getPointerPosition();
+    const imgP = stageToImagePoint(p, imageOffset.x, imageOffset.y, zoom);
     setIsDrawing(true);
-    setCurrentPath([{ x: point.x, y: point.y }]);
+    setCurrentPath([imgP]);
   };
-
+  
   const handleMouseMove = (e: any) => {
     if (!isDrawing || toolMode !== "draw") return;
-
     const stage = e.target.getStage();
-    const point = stage.getPointerPosition();
-
-    setCurrentPath([...currentPath, { x: point.x, y: point.y }]);
+    const p = stage.getPointerPosition();
+    const imgP = stageToImagePoint(p, imageOffset.x, imageOffset.y, zoom);
+    // use functional update to avoid stale closures during rapid moves
+    setCurrentPath(prev => [...prev, imgP]);
   };
+  
 
   const handleMouseUp = async (e: any) => {
     if (!isDrawing || toolMode !== "draw") return;
@@ -171,6 +174,15 @@ export default function CanvasStage({
     setCurrentPath([]);
   };
 
+  function stageToImagePoint(
+    p: { x: number; y: number },
+    offsetX: number,
+    offsetY: number,
+    zoom: number
+  ): Point {
+    return { x: (p.x - offsetX) / zoom, y: (p.y - offsetY) / zoom };
+  }  
+
   // Process drawn region with OpenCV
   const processDrawnRegion = async () => {
     if (!loadedImage) {
@@ -186,7 +198,8 @@ export default function CanvasStage({
         loadedImage,
         currentPath,
         shapeMode,
-        polygonSides
+        polygonSides,
+        { offsetX: 0, offsetY: 0, zoom: 1 } 
       );
 
       // Create annotation with processed points
@@ -223,6 +236,8 @@ export default function CanvasStage({
     setAnnotations(newAnnotations);
   };
 
+  
+
   // Clear current drawing
   const handleClearDrawing = () => {
     setCurrentPath([]);
@@ -231,7 +246,8 @@ export default function CanvasStage({
 
   // Delete selected annotation
   const handleDeleteSelected = () => {
-    if (selectedAnnotationId) {
+    if (selectedAnnotationId)
+    {
       setAnnotationHistory([...annotationHistory, annotations]); // Save current state to history
       setAnnotations(annotations.filter(a => a.id !== selectedAnnotationId));
       setSelectedAnnotationId(null);
@@ -240,7 +256,8 @@ export default function CanvasStage({
 
   // Undo last annotation change
   const handleUndo = () => {
-    if (annotationHistory.length > 0) {
+    if (annotationHistory.length > 0)
+    {
       const previousState = annotationHistory[annotationHistory.length - 1];
       setAnnotations(previousState);
       setAnnotationHistory(annotationHistory.slice(0, -1));
@@ -249,27 +266,32 @@ export default function CanvasStage({
   };
 
   // Clear all annotations
-  const handleClearAll = () => {
+  const handleClearAll = () =>
+  {
     setAnnotationHistory([...annotationHistory, annotations]); // Save current state to history
     setAnnotations([]);
     setSelectedAnnotationId(null);
   };
 
   // Zoom handlers
-  const handleZoomIn = () => {
+  const handleZoomIn = () =>
+  {
     setZoom(prev => Math.min(prev + 0.1, 3)); // Max 3x zoom
   };
 
-  const handleZoomOut = () => {
+  const handleZoomOut = () =>
+  {
     setZoom(prev => Math.max(prev - 0.1, 0.5)); // Min 0.5x zoom
   };
 
-  const handleResetZoom = () => {
+  const handleResetZoom = () =>
+  {
     setZoom(1);
   };
 
   // Get consistent annotation color
-  const getAnnotationColor = () => {
+  const getAnnotationColor = () =>
+  {
     return "#4ECDC4"; // Consistent teal color for all annotations
   };
 
@@ -414,51 +436,50 @@ export default function CanvasStage({
         onMouseUp={handleMouseUp}
       >
         <Layer>
-          {/* Background Image */}
-          {imageUrl && (
-            <DrawingImage
-              src={imageUrl}
-              onImageLoad={setLoadedImage}
-              x={imageOffset.x}
-              y={imageOffset.y}
-              scaleX={zoom}
-              scaleY={zoom}
-            />
-          )}
+          <Group
+            x={imageOffset.x}
+            y={imageOffset.y}
+            scaleX={zoom}
+            scaleY={zoom}
+          >
+            {/* Image in image coords (top-left at 0,0; no extra scaling here) */}
+            {imageUrl && (
+              <DrawingImage
+                src={imageUrl}
+                onImageLoad={setLoadedImage}
+                x={0}
+                y={0}
+                scaleX={1}
+                scaleY={1}
+              />
+            )}
 
-          {/* Saved Annotations */}
-          {annotations.map((annotation) => (
-            <Line
-              key={annotation.id}
-              points={annotation.points}
-              stroke={annotation.color}
-              strokeWidth={3}
-              closed={true}
-              fill={annotation.color + "40"} // Add transparency
-              onClick={() => {
-                if (toolMode === "select") {
-                  setSelectedAnnotationId(annotation.id);
-                }
-              }}
-              onDblClick={() => {
-                // Double-click to enter select mode and select this annotation
-                setToolMode("select");
-                setSelectedAnnotationId(annotation.id);
-              }}
-              opacity={selectedAnnotationId === annotation.id ? 0.8 : 0.5}
-            />
-          ))}
+            {/* Saved Annotations (IMAGE-space points) */}
+            {annotations.map(a => (
+              <Line
+                key={a.id}
+                points={a.points}
+                stroke={a.color}
+                strokeWidth={3 / zoom /* keeps stroke visually reasonable */}
+                closed
+                fill={a.color + "40"}
+                onClick={() => { if (toolMode === "select") setSelectedAnnotationId(a.id); }}
+                onDblClick={() => { setToolMode("select"); setSelectedAnnotationId(a.id); }}
+                opacity={selectedAnnotationId === a.id ? 0.8 : 0.5}
+              />
+            ))}
 
-          {/* Current Drawing Path */}
-          {isDrawing && currentPath.length > 0 && (
-            <Line
-              points={currentPath.flatMap(p => [p.x, p.y])}
-              stroke="#0066FF"
-              strokeWidth={2}
-              lineCap="round"
-              lineJoin="round"
-            />
-          )}
+            {/* Current Drawing Path (IMAGE space) */}
+            {isDrawing && currentPath.length > 0 && (
+              <Line
+                points={currentPath.flatMap(p => [p.x, p.y])}
+                stroke="#0066FF"
+                strokeWidth={2 / zoom}
+                lineCap="round"
+                lineJoin="round"
+              />
+            )}
+          </Group>
         </Layer>
       </Stage>
     </div>
