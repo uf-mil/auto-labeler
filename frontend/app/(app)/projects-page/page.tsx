@@ -1,7 +1,9 @@
 // app/(app)/projects-page/page.tsx
+"use client";
+import { useEffect, useState } from "react";
 import ProjectCard from "@/components/ProjectCard";
 export default function ProjectsPage() {
-
+  
   type Project = {
     name: string;
     description?: string;
@@ -10,73 +12,52 @@ export default function ProjectsPage() {
     lastLabeledAt: Date;
   };
 
-  const projects: Project[] = [
-    {
-      name: "NaviGator",
-      description: "The Machine Intelligence Laboratory (MIL) provides a synergistic environment dedicated to the study and development of intelligent, autonomous robots. The faculty and students associated with the laboratory conduct research in the theory and realization of machine intelligence covering topics such as machine learning, real-time computer vision, statistical modeling, robot kinematics, autonomous vehicles, teleoperation and human interfaces, robot and nonlinear control, computational intelligence, neural networks, and general robotics.",
-      labeledCount: 2,
-      totalImages: 4,
-      lastLabeledAt: new Date("2025-01-09")
-    },
-    {
-      name: "Subj",
-      description: "The Machine Intelligence Laboratory (MIL) provides a synergistic environment dedicated to the study and development of intelligent, autonomous robots. The faculty and students associated with the laboratory conduct research in the theory and realization of machine intelligence covering topics such as machine learning, real-time computer vision, statistical modeling, robot kinematics, autonomous vehicles, teleoperation and human interfaces, robot and nonlinear control, computational intelligence, neural networks, and general robotics.",
-      labeledCount: 2,
-      totalImages: 4,
-      lastLabeledAt: new Date("2025-01-09")
-    },
-    {
-      name: "Obstacles for RoboSub Dolphins",
-      labeledCount: 2,
-      totalImages: 4,
-      lastLabeledAt: new Date("2024-01-09")
-    },
-    {
-      name: "Project 1",
-      labeledCount: 2,
-      totalImages: 4,
-      lastLabeledAt: new Date("2024-01-09")
-    },
-    {
-      name: "Project 1",
-      labeledCount: 2,
-      totalImages: 4,
-      lastLabeledAt: new Date("2024-01-09")
-    },{
-      name: "Project 1",
-      labeledCount: 3,
-      totalImages: 4,
-      lastLabeledAt: new Date("2024-01-09")
-    }, 
-    {
-      name: "Project 1",
-      labeledCount: 2,
-      totalImages: 4,
-      lastLabeledAt: new Date("2024-01-09")
-    },
-  ]
+  const [projects, setProjects] = useState<Project[]>([]);
 
-  return <>
-    <h1>Projects</h1>
-    <div className="flex justify-center">
-      <div className="flex flex-wrap justify-center gap-5 w-full">
-        {projects.map((project, key) => {
-          return (
-            <ProjectCard 
-              key={key} 
-              name={project.name} 
-              description={project.description} 
-              labeledCount={project.labeledCount} 
-              totalImages={project.totalImages} 
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const res = await fetch("http://localhost:8000/api/projects");
+        if (!res.ok) throw new Error("Failed to fetch projects");
+        const data = await res.json();
+
+        const formatted: Project[] = data.map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          description: p.description || "",
+          labeledCount: p.labeledCount ?? 0,
+          totalImages: p.totalImages ?? 0,
+          lastLabeledAt: p.lastLabeledAt ? new Date(p.lastLabeledAt) : new Date(),
+        }));
+
+        setProjects(formatted);
+      } catch (err) {
+        console.error("Error fetching projects:", err);
+      }
+    };
+
+    fetchProjects();
+  }, []);
+
+  return (
+    <>
+      <h1>Projects</h1>
+      <div className="flex justify-center">
+        <div className="flex flex-wrap justify-center gap-5 w-full">
+          {projects.map((project, key) => (
+            <ProjectCard
+              key={key}
+              name={project.name}
+              description={project.description}
+              labeledCount={project.labeledCount}
+              totalImages={project.totalImages}
               lastLabeledAt={project.lastLabeledAt}
               total={projects.length}
               index={key}
             />
-          )
-        })}
+          ))}
+        </div>
       </div>
-    </div>
-    
-  </>;
-  }
-  
+    </>
+  );
+}
